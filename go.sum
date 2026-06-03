@@ -1,0 +1,6 @@
+github.com/CarriedWorldUniverse/casket-go v0.1.0 h1:t+DvXs8vhaNcTfkSS/sqK47fBTNVRdHfF7DT/ur0jtY=
+github.com/CarriedWorldUniverse/casket-go v0.1.0/go.mod h1:v0y8kPW/WmusBw+Q3ZtRYhVwoK/WVVVXHWSc/oRVWBo=
+github.com/go-jose/go-jose/v4 v4.1.4 h1:moDMcTHmvE6Groj34emNPLs/qtYXRVcd6S7NHbHz3kA=
+github.com/go-jose/go-jose/v4 v4.1.4/go.mod h1:x4oUasVrzR7071A4TnHLGSPpNOm2a21K9Kf04k1rs08=
+golang.org/x/crypto v0.22.0 h1:g1v0xeRhjcugydODzvb3mEM9SQ0HGp9s/nh3COQ/C30=
+golang.org/x/crypto v0.22.0/go.mod h1:vr6Su+7cTlO45qkww3VDJlzDn0ctJvRgYbC2NvXHt+M=
