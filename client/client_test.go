@@ -54,11 +54,11 @@ func TestStatic401ReturnsBareResponse(t *testing.T) {
 
 	c := WithStaticToken(srv.URL, "static-tok")
 	resp, raw, err := c.Get(context.Background(), "ledger", "/things")
-	if err != nil {
-		t.Fatalf("Do returned err %v, want bare 401 response (not ErrReauth)", err)
-	}
 	if errors.Is(err, ErrReauth) {
 		t.Fatal("static-token 401 must not surface ErrReauth")
+	}
+	if err != nil {
+		t.Fatalf("Do returned unexpected err %v, want bare 401 response", err)
 	}
 	if resp.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", resp.StatusCode)
