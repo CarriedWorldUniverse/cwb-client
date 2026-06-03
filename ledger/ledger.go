@@ -53,7 +53,7 @@ func keyPath(key string) string { return base + "/" + url.PathEscape(key) }
 
 // do marshals body, calls the ledger pillar, maps non-2xx to an error, decodes
 // into out (nil out = 2xx check only). Mirrors internal/cairn.do.
-func do(ctx context.Context, c *client.Client, method, path string, body, out any) error {
+func do(ctx context.Context, c client.Doer, method, path string, body, out any) error {
 	var raw []byte
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -93,27 +93,27 @@ func errMsg(body []byte, status int) string {
 	}
 }
 
-func CreateIssue(ctx context.Context, c *client.Client, in CreateInput) (Issue, error) {
+func CreateIssue(ctx context.Context, c client.Doer, in CreateInput) (Issue, error) {
 	var iss Issue
 	err := do(ctx, c, http.MethodPost, base, in, &iss)
 	return iss, err
 }
 
-func GetIssue(ctx context.Context, c *client.Client, key string) (Issue, error) {
+func GetIssue(ctx context.Context, c client.Doer, key string) (Issue, error) {
 	var iss Issue
 	err := do(ctx, c, http.MethodGet, keyPath(key), nil, &iss)
 	return iss, err
 }
 
-func ListMine(ctx context.Context, c *client.Client) ([]IssueRef, error) {
+func ListMine(ctx context.Context, c client.Doer) ([]IssueRef, error) {
 	return listRefs(ctx, c, base+"/my", "issues")
 }
-func ListReady(ctx context.Context, c *client.Client) ([]IssueRef, error) {
+func ListReady(ctx context.Context, c client.Doer) ([]IssueRef, error) {
 	return listRefs(ctx, c, base+"/ready", "issues")
 }
 
 // SearchByProject filters issues to one project key.
-func SearchByProject(ctx context.Context, c *client.Client, project string) ([]IssueRef, error) {
+func SearchByProject(ctx context.Context, c client.Doer, project string) ([]IssueRef, error) {
 	body := map[string]any{"filter": map[string]any{"projects": []string{project}}}
 	var w struct {
 		Refs []IssueRef `json:"refs"`
@@ -123,7 +123,7 @@ func SearchByProject(ctx context.Context, c *client.Client, project string) ([]I
 }
 
 // listRefs decodes the wrapped {<field>:[IssueRef]} list responses.
-func listRefs(ctx context.Context, c *client.Client, path, field string) ([]IssueRef, error) {
+func listRefs(ctx context.Context, c client.Doer, path, field string) ([]IssueRef, error) {
 	var w map[string][]IssueRef
 	if err := do(ctx, c, http.MethodGet, path, nil, &w); err != nil {
 		return nil, err
@@ -131,16 +131,16 @@ func listRefs(ctx context.Context, c *client.Client, path, field string) ([]Issu
 	return w[field], nil
 }
 
-func Claim(ctx context.Context, c *client.Client, key string) (Issue, error) {
+func Claim(ctx context.Context, c client.Doer, key string) (Issue, error) {
 	var iss Issue
 	err := do(ctx, c, http.MethodPost, keyPath(key)+"/claim", nil, &iss)
 	return iss, err
 }
 
-func Transition(ctx context.Context, c *client.Client, key, status string) error {
+func Transition(ctx context.Context, c client.Doer, key, status string) error {
 	return do(ctx, c, http.MethodPost, keyPath(key)+"/transition", map[string]string{"status": status}, nil)
 }
 
-func Comment(ctx context.Context, c *client.Client, key, body string) error {
+func Comment(ctx context.Context, c client.Doer, key, body string) error {
 	return do(ctx, c, http.MethodPost, keyPath(key)+"/comments", map[string]string{"body": body}, nil)
 }

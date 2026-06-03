@@ -55,7 +55,7 @@ type DeleteResult struct {
 
 // do marshals body, calls the herald pillar, maps non-2xx to an error, decodes
 // into out (nil out = 2xx check only). Mirrors internal/cairn.do.
-func do(ctx context.Context, c *client.Client, method, path string, body, out any) error {
+func do(ctx context.Context, c client.Doer, method, path string, body, out any) error {
 	var raw []byte
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -95,13 +95,13 @@ func errMsg(body []byte, status int) string {
 	}
 }
 
-func CreateOrg(ctx context.Context, c *client.Client, in CreateOrgInput) (Org, error) {
+func CreateOrg(ctx context.Context, c client.Doer, in CreateOrgInput) (Org, error) {
 	var o Org
 	err := do(ctx, c, http.MethodPost, "/api/orgs", in, &o)
 	return o, err
 }
 
-func ListOrgs(ctx context.Context, c *client.Client) ([]Org, error) {
+func ListOrgs(ctx context.Context, c client.Doer) ([]Org, error) {
 	var w struct {
 		Orgs []Org `json:"orgs"`
 	}
@@ -109,42 +109,42 @@ func ListOrgs(ctx context.Context, c *client.Client) ([]Org, error) {
 	return w.Orgs, err
 }
 
-func DeleteOrg(ctx context.Context, c *client.Client, id, name string) (DeleteResult, error) {
+func DeleteOrg(ctx context.Context, c client.Doer, id, name string) (DeleteResult, error) {
 	var r DeleteResult
 	path := "/api/orgs/" + url.PathEscape(id)
 	err := do(ctx, c, http.MethodDelete, path, map[string]string{"name": name}, &r)
 	return r, err
 }
 
-func GetProducts(ctx context.Context, c *client.Client, org string) (map[string]bool, error) {
+func GetProducts(ctx context.Context, c client.Doer, org string) (map[string]bool, error) {
 	out := map[string]bool{}
 	path := "/api/orgs/" + url.PathEscape(org) + "/products"
 	err := do(ctx, c, http.MethodGet, path, nil, &out)
 	return out, err
 }
 
-func EnableProduct(ctx context.Context, c *client.Client, org, product string) (map[string]bool, error) {
+func EnableProduct(ctx context.Context, c client.Doer, org, product string) (map[string]bool, error) {
 	out := map[string]bool{}
 	path := "/api/orgs/" + url.PathEscape(org) + "/products/" + url.PathEscape(product) + "/enable"
 	err := do(ctx, c, http.MethodPost, path, nil, &out)
 	return out, err
 }
 
-func DisableProduct(ctx context.Context, c *client.Client, org, product string) (map[string]bool, error) {
+func DisableProduct(ctx context.Context, c client.Doer, org, product string) (map[string]bool, error) {
 	out := map[string]bool{}
 	path := "/api/orgs/" + url.PathEscape(org) + "/products/" + url.PathEscape(product) + "/disable"
 	err := do(ctx, c, http.MethodPost, path, nil, &out)
 	return out, err
 }
 
-func CreateHuman(ctx context.Context, c *client.Client, org string, in CreateHumanInput) (Human, error) {
+func CreateHuman(ctx context.Context, c client.Doer, org string, in CreateHumanInput) (Human, error) {
 	var h Human
 	path := "/api/orgs/" + url.PathEscape(org) + "/humans"
 	err := do(ctx, c, http.MethodPost, path, in, &h)
 	return h, err
 }
 
-func CreateAgent(ctx context.Context, c *client.Client, org string, in CreateAgentInput) (Agent, error) {
+func CreateAgent(ctx context.Context, c client.Doer, org string, in CreateAgentInput) (Agent, error) {
 	var a Agent
 	path := "/api/orgs/" + url.PathEscape(org) + "/agents"
 	err := do(ctx, c, http.MethodPost, path, in, &a)
@@ -155,14 +155,14 @@ func CreateAgent(ctx context.Context, c *client.Client, org string, in CreateAge
 // herald's GET /api/agents/by-fingerprint/{fp} (NEX-412). Returns an error
 // (carrying herald's 404 message) when no agent matches — the caller treats
 // that as "not provisioned".
-func GetAgentByFingerprint(ctx context.Context, c *client.Client, fp string) (Agent, error) {
+func GetAgentByFingerprint(ctx context.Context, c client.Doer, fp string) (Agent, error) {
 	var a Agent
 	path := "/api/agents/by-fingerprint/" + url.PathEscape(fp)
 	err := do(ctx, c, http.MethodGet, path, nil, &a)
 	return a, err
 }
 
-func SetHumanPassword(ctx context.Context, c *client.Client, id, password string) error {
+func SetHumanPassword(ctx context.Context, c client.Doer, id, password string) error {
 	path := "/api/humans/" + url.PathEscape(id) + "/password"
 	return do(ctx, c, http.MethodPost, path, map[string]string{"password": password}, nil)
 }
@@ -182,7 +182,7 @@ type UserInfo struct {
 }
 
 // Me returns the caller's own authoritative identity record (server-side).
-func Me(ctx context.Context, c *client.Client) (UserInfo, error) {
+func Me(ctx context.Context, c client.Doer) (UserInfo, error) {
 	var ui UserInfo
 	err := do(ctx, c, http.MethodGet, "/api/me", nil, &ui)
 	return ui, err
