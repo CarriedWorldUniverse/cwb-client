@@ -151,6 +151,17 @@ func CreateAgent(ctx context.Context, c *client.Client, org string, in CreateAge
 	return a, err
 }
 
+// GetAgentByFingerprint resolves an agent from its casket fingerprint via
+// herald's GET /api/agents/by-fingerprint/{fp} (NEX-412). Returns an error
+// (carrying herald's 404 message) when no agent matches — the caller treats
+// that as "not provisioned".
+func GetAgentByFingerprint(ctx context.Context, c *client.Client, fp string) (Agent, error) {
+	var a Agent
+	path := "/api/agents/by-fingerprint/" + url.PathEscape(fp)
+	err := do(ctx, c, http.MethodGet, path, nil, &a)
+	return a, err
+}
+
 func SetHumanPassword(ctx context.Context, c *client.Client, id, password string) error {
 	path := "/api/humans/" + url.PathEscape(id) + "/password"
 	return do(ctx, c, http.MethodPost, path, map[string]string{"password": password}, nil)
