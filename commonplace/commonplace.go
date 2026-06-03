@@ -40,7 +40,7 @@ const base = "/api/knowledge"
 
 // do marshals body, calls the knowledge pillar, maps non-2xx to an error,
 // decodes into out (nil out = 2xx check only). Mirrors internal/cairn.do.
-func do(ctx context.Context, c *client.Client, method, path string, body, out any) error {
+func do(ctx context.Context, c client.Doer, method, path string, body, out any) error {
 	var raw []byte
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -80,13 +80,13 @@ func errMsg(body []byte, status int) string {
 	}
 }
 
-func Store(ctx context.Context, c *client.Client, in StoreInput) (Entry, error) {
+func Store(ctx context.Context, c client.Doer, in StoreInput) (Entry, error) {
 	var e Entry
 	err := do(ctx, c, http.MethodPost, base, in, &e)
 	return e, err
 }
 
-func Search(ctx context.Context, c *client.Client, q string, topK int) ([]Hit, error) {
+func Search(ctx context.Context, c client.Doer, q string, topK int) ([]Hit, error) {
 	qs := url.Values{"q": {q}, "top_k": {strconv.Itoa(topK)}}.Encode()
 	var w struct {
 		Hits []Hit `json:"hits"`
@@ -95,7 +95,7 @@ func Search(ctx context.Context, c *client.Client, q string, topK int) ([]Hit, e
 	return w.Hits, err
 }
 
-func List(ctx context.Context, c *client.Client) ([]Entry, error) {
+func List(ctx context.Context, c client.Doer) ([]Entry, error) {
 	var w struct {
 		Entries []Entry `json:"entries"`
 	}
@@ -113,13 +113,13 @@ type UpdateInput struct {
 }
 
 // Update patches an entry by id (PATCH /api/knowledge/{id}) -> the updated Entry.
-func Update(ctx context.Context, c *client.Client, id string, in UpdateInput) (Entry, error) {
+func Update(ctx context.Context, c client.Doer, id string, in UpdateInput) (Entry, error) {
 	var e Entry
 	err := do(ctx, c, http.MethodPatch, base+"/"+url.PathEscape(id), in, &e)
 	return e, err
 }
 
 // Delete removes an entry by id (DELETE /api/knowledge/{id}) -> 2xx-only (204).
-func Delete(ctx context.Context, c *client.Client, id string) error {
+func Delete(ctx context.Context, c client.Doer, id string) error {
 	return do(ctx, c, http.MethodDelete, base+"/"+url.PathEscape(id), nil, nil)
 }

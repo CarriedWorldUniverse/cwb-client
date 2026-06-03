@@ -57,7 +57,7 @@ func pullsPath(org, slug string) string {
 }
 
 // do is the shared request/decode/error-map helper.
-func do(ctx context.Context, c *client.Client, method, path string, body, out any) error {
+func do(ctx context.Context, c client.Doer, method, path string, body, out any) error {
 	var raw []byte
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -98,25 +98,25 @@ func errMsg(body []byte, status int) string {
 	}
 }
 
-func CreateRepo(ctx context.Context, c *client.Client, org, slug string) (Repo, error) {
+func CreateRepo(ctx context.Context, c client.Doer, org, slug string) (Repo, error) {
 	var r Repo
 	err := do(ctx, c, http.MethodPost, reposPath(org), map[string]string{"slug": slug}, &r)
 	return r, err
 }
 
-func ListRepos(ctx context.Context, c *client.Client, org string) ([]Repo, error) {
+func ListRepos(ctx context.Context, c client.Doer, org string) ([]Repo, error) {
 	var rs []Repo
 	err := do(ctx, c, http.MethodGet, reposPath(org), nil, &rs)
 	return rs, err
 }
 
-func OpenPull(ctx context.Context, c *client.Client, org, slug string, in OpenPullInput) (Pull, error) {
+func OpenPull(ctx context.Context, c client.Doer, org, slug string, in OpenPullInput) (Pull, error) {
 	var p Pull
 	err := do(ctx, c, http.MethodPost, pullsPath(org, slug), in, &p)
 	return p, err
 }
 
-func ListPulls(ctx context.Context, c *client.Client, org, slug, state string) ([]Pull, error) {
+func ListPulls(ctx context.Context, c client.Doer, org, slug, state string) ([]Pull, error) {
 	path := pullsPath(org, slug)
 	if state != "" {
 		path += "?state=" + url.QueryEscape(state)
@@ -126,13 +126,13 @@ func ListPulls(ctx context.Context, c *client.Client, org, slug, state string) (
 	return ps, err
 }
 
-func GetPull(ctx context.Context, c *client.Client, org, slug, id string) (Pull, error) {
+func GetPull(ctx context.Context, c client.Doer, org, slug, id string) (Pull, error) {
 	var p Pull
 	err := do(ctx, c, http.MethodGet, pullsPath(org, slug)+"/"+url.PathEscape(id), nil, &p)
 	return p, err
 }
 
-func MergePull(ctx context.Context, c *client.Client, org, slug, id string) (MergeResult, error) {
+func MergePull(ctx context.Context, c client.Doer, org, slug, id string) (MergeResult, error) {
 	var r MergeResult
 	err := do(ctx, c, http.MethodPost, pullsPath(org, slug)+"/"+url.PathEscape(id)+"/merge", nil, &r)
 	return r, err

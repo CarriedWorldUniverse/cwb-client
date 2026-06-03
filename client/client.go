@@ -27,6 +27,13 @@ type TokenSource interface {
 	Refresh(ctx context.Context) (string, error) // force-refresh after a 401; ErrReauth/ErrNoRefresh
 }
 
+// Doer executes an authenticated CWB request and returns the raw response.
+// *Client is the HTTP implementation; other transports (e.g. a WS relay in
+// nexus) implement it so the pillar wrappers are transport-agnostic.
+type Doer interface {
+	Do(ctx context.Context, method, pillar, path string, body []byte) (*http.Response, []byte, error)
+}
+
 // Client targets one edge as one identity (its TokenSource).
 type Client struct {
 	edge string

@@ -257,3 +257,25 @@ func TestMeError(t *testing.T) {
 		t.Fatalf("Me error: want server message, got %v", err)
 	}
 }
+
+func TestWrapperOverFakeDoer(t *testing.T) {
+	fd := &fakeHeraldDoer{status: 200, body: []byte(`{"id":"a1","fingerprint":"fp1"}`)}
+	a, err := GetAgentByFingerprint(context.Background(), fd, "fp1")
+	if err != nil {
+		t.Fatalf("GetAgentByFingerprint over fake doer: %v", err)
+	}
+	if a.ID != "a1" || fd.gotPath != "/api/agents/by-fingerprint/fp1" || fd.gotPillar != "herald" {
+		t.Fatalf("agent=%+v doer=%+v", a, fd)
+	}
+}
+
+type fakeHeraldDoer struct {
+	gotPillar, gotPath string
+	status             int
+	body               []byte
+}
+
+func (f *fakeHeraldDoer) Do(_ context.Context, method, pillar, path string, _ []byte) (*http.Response, []byte, error) {
+	f.gotPillar, f.gotPath = pillar, path
+	return &http.Response{StatusCode: f.status}, f.body, nil
+}
