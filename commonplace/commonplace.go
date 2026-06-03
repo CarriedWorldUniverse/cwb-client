@@ -102,3 +102,24 @@ func List(ctx context.Context, c *client.Client) ([]Entry, error) {
 	err := do(ctx, c, http.MethodGet, base, nil, &w)
 	return w.Entries, err
 }
+
+// UpdateInput patches a knowledge entry. Only non-nil fields are sent; the
+// server leaves unsupplied fields unchanged. Tags, when set, fully replaces.
+type UpdateInput struct {
+	Topic      *string   `json:"topic,omitempty"`
+	Content    *string   `json:"content,omitempty"`
+	Visibility *string   `json:"visibility,omitempty"`
+	Tags       *[]string `json:"tags,omitempty"`
+}
+
+// Update patches an entry by id (PATCH /api/knowledge/{id}) -> the updated Entry.
+func Update(ctx context.Context, c *client.Client, id string, in UpdateInput) (Entry, error) {
+	var e Entry
+	err := do(ctx, c, http.MethodPatch, base+"/"+url.PathEscape(id), in, &e)
+	return e, err
+}
+
+// Delete removes an entry by id (DELETE /api/knowledge/{id}) -> 2xx-only (204).
+func Delete(ctx context.Context, c *client.Client, id string) error {
+	return do(ctx, c, http.MethodDelete, base+"/"+url.PathEscape(id), nil, nil)
+}
