@@ -2,6 +2,7 @@ package commonplace
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -76,5 +77,51 @@ func TestErrorMapping(t *testing.T) {
 	}
 	if _, err := List(ctx, c); err == nil || !strings.Contains(err.Error(), "status 500") {
 		t.Fatalf("List error: want status fallback, got %v", err)
+	}
+}
+
+func TestUpdateDelete(t *testing.T) {
+	var patchBody string
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /knowledge/api/knowledge/e1", func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		patchBody = string(b)
+		_, _ = w.Write([]byte(`{"id":"e1","topic":"new","content":"c","visibility":"org"}`))
+	})
+	mux.HandleFunc("DELETE /knowledge/api/knowledge/e1", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	c := client.WithStaticToken(srv.URL, "tok")
+	ctx := context.Background()
+
+	topic := "new"
+	e, err := Update(ctx, c, "e1", UpdateInput{Topic: &topic})
+	if err != nil || e.ID != "e1" || e.Topic != "new" {
+		t.Fatalf("Update: %v %+v", err, e)
+	}
+	// only the changed field is sent.
+	if !strings.Contains(patchBody, `"topic":"new"`) || strings.Contains(patchBody, "content") {
+		t.Fatalf("patch body should carry only topic: %s", patchBody)
+	}
+	if err := Delete(ctx, c, "e1"); err != nil { // 204
+		t.Fatalf("Delete: %v", err)
+	}
+}
+
+func TestUpdateError(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /knowledge/api/knowledge/missing", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"error":"not found"}`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	c := client.WithStaticToken(srv.URL, "tok")
+	topic := "x"
+	if _, err := Update(context.Background(), c, "missing", UpdateInput{Topic: &topic}); err == nil ||
+		!strings.Contains(err.Error(), "not found") {
+		t.Fatalf("Update error: want server message, got %v", err)
 	}
 }
