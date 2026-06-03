@@ -185,6 +185,39 @@ func TestCreateAgent(t *testing.T) {
 	}
 }
 
+func TestGetAgentByFingerprint(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /herald/api/agents/by-fingerprint/fp-abc", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"id":"a1","kind":"agent","display_name":"plumb","org":"o1","responsible_human":"h1","fingerprint":"fp-abc","status":"active","active":true,"scopes":["repo:read"]}`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	c := client.WithStaticToken(srv.URL, "tok")
+
+	a, err := GetAgentByFingerprint(context.Background(), c, "fp-abc")
+	if err != nil {
+		t.Fatalf("GetAgentByFingerprint: %v", err)
+	}
+	if a.ID != "a1" || a.Fingerprint != "fp-abc" || a.Org != "o1" {
+		t.Fatalf("agent = %+v", a)
+	}
+}
+
+func TestGetAgentByFingerprintNotFound(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /herald/api/agents/by-fingerprint/fp-missing", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"error":"no agent for fingerprint"}`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	c := client.WithStaticToken(srv.URL, "tok")
+
+	if _, err := GetAgentByFingerprint(context.Background(), c, "fp-missing"); err == nil {
+		t.Fatal("expected error on 404")
+	}
+}
+
 func TestMe(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /herald/api/me", func(w http.ResponseWriter, r *http.Request) {
