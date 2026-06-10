@@ -4,6 +4,18 @@ A reusable Go client for the [Carried World Builder](https://github.com/CarriedW
 
 The library was extracted from the `cw` CLI so that other CWB clients can share one accurate, transport-agnostic client surface.
 
+## Layout
+
+| Package | What it wraps |
+|---|---|
+| `client` | The edge-anchored HTTP `Doer` + `TokenSource` (bearer presentation, 401-refresh-retry). |
+| `oidc` | Herald's OIDC token endpoint — discovery + password / JWT-bearer / refresh grants, revoke. |
+| `identity` | Agent JWT assertions (from a seed via `casket.DeriveAgentKey`, or from an ed25519 key), access-claim decoding, key fingerprints. |
+| `herald` | Orgs, humans, agents, products, `Me` (whoami), agent-by-fingerprint lookup. |
+| `cairn` | Repos and pull requests (create/list repos, open/list/get/merge pulls). |
+| `ledger` | Issues — create, get, claim, transition, comment, list-mine / list-ready / search-by-project. |
+| `commonplace` | Knowledge entries — store, search, list, update, delete. |
+
 ## Install
 
 ```
