@@ -33,6 +33,10 @@ type Discovery struct {
 	TokenEndpoint      string `json:"token_endpoint"`
 	RevocationEndpoint string `json:"revocation_endpoint"`
 	JWKSURI            string `json:"jwks_uri"`
+	// AgentAuth carries the auth.md agent_auth block (ID-JAG identity endpoint).
+	AgentAuth struct {
+		IdentityEndpoint string `json:"identity_endpoint"`
+	} `json:"agent_auth"`
 }
 
 // Discover fetches the OIDC discovery document from the edge.
@@ -113,6 +117,36 @@ func (c *Client) RefreshGrant(ctx context.Context, refreshToken string) (Token, 
 // TokenEndpoint exposes the discovered token endpoint (agents need it as the
 // assertion audience).
 func (c *Client) TokenEndpoint(ctx context.Context) (string, error) { return c.tokenURL(ctx) }
+
+// IdentityEndpoint exposes the discovered auth.md agent-identity endpoint
+// (agents need it as the assertion audience when minting an ID-JAG).
+func (c *Client) IdentityEndpoint(ctx context.Context) (string, error) {
+	d, err := c.Discover(ctx)
+	if err != nil {
+		return "", err
+	}
+	if d.AgentAuth.IdentityEndpoint == "" {
+		return "", fmt.Errorf("oidc: discovery has no agent_auth.identity_endpoint")
+	}
+	return d.AgentAuth.IdentityEndpoint, nil
+}
+
+// IdentityAssertion mints an audience-scoped ID-JAG: it POSTs a casket-signed
+// proof-of-possession assertion (type=identity_assertion) plus the target
+// `audience` to herald's /agent/identity endpoint and returns the resulting
+// short-lived, audience-scoped token. The assertion's own audience must be the
+// identity endpoint URL (see IdentityEndpoint).
+func (c *Client) IdentityAssertion(ctx context.Context, assertion, audience string) (Token, error) {
+	iu, err := c.IdentityEndpoint(ctx)
+	if err != nil {
+		return Token{}, err
+	}
+	return c.grant(ctx, iu, url.Values{
+		"type":      {"identity_assertion"},
+		"assertion": {assertion},
+		"audience":  {audience},
+	}, "identity assertion")
+}
 
 func (c *Client) grant(ctx context.Context, tokenURL string, form url.Values, what string) (Token, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))

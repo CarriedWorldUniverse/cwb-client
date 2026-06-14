@@ -12,7 +12,15 @@ func stubHerald(t *testing.T) *httptest.Server {
 	mux := http.NewServeMux()
 	var srv *httptest.Server
 	mux.HandleFunc("GET /herald/.well-known/openid-configuration", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte(`{"token_endpoint":"` + srv.URL + `/herald/token","revocation_endpoint":"` + srv.URL + `/herald/revoke"}`))
+		_, _ = w.Write([]byte(`{"token_endpoint":"` + srv.URL + `/herald/token","revocation_endpoint":"` + srv.URL + `/herald/revoke","agent_auth":{"identity_endpoint":"` + srv.URL + `/herald/agent/identity"}}`))
+	})
+	mux.HandleFunc("POST /herald/agent/identity", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		if r.Form.Get("type") != "identity_assertion" || r.Form.Get("assertion") == "" || r.Form.Get("audience") == "" {
+			w.WriteHeader(400)
+			return
+		}
+		_, _ = w.Write([]byte(`{"access_token":"idjag-` + r.Form.Get("audience") + `","issued_token_type":"urn:ietf:params:oauth:token-type:id-jag","token_type":"N_A","expires_in":300}`))
 	})
 	mux.HandleFunc("POST /herald/token", func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
@@ -78,5 +86,27 @@ func TestDiscoverAndGrants(t *testing.T) {
 
 	if err := c.Revoke(ctx, "r-new"); err != nil {
 		t.Fatalf("Revoke: %v", err)
+	}
+}
+
+func TestIdentityAssertion(t *testing.T) {
+	srv := stubHerald(t)
+	c := New(srv.URL)
+	ctx := context.Background()
+
+	iu, err := c.IdentityEndpoint(ctx)
+	if err != nil || iu != srv.URL+"/herald/agent/identity" {
+		t.Fatalf("IdentityEndpoint: %v %q", err, iu)
+	}
+
+	tok, err := c.IdentityAssertion(ctx, "signed.assertion.jws", "ledger")
+	if err != nil || tok.AccessToken != "idjag-ledger" {
+		t.Fatalf("IdentityAssertion: %v %+v", err, tok)
+	}
+	if _, err := c.IdentityAssertion(ctx, "", "ledger"); err == nil {
+		t.Fatal("empty assertion should error")
+	}
+	if _, err := c.IdentityAssertion(ctx, "signed.assertion.jws", ""); err == nil {
+		t.Fatal("empty audience should error")
 	}
 }
